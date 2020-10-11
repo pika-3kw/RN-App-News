@@ -1,51 +1,72 @@
 import React, { useState, useEffect } from "react";
-import { StyleSheet, View, ActivityIndicator, FlatList } from "react-native";
+import {
+  StyleSheet,
+  View,
+  ActivityIndicator,
+  FlatList,
+  Text,
+} from "react-native";
 import Constants from "expo-constants";
 
 import Article from "./components/Article";
 
 export default function App() {
   const [isLoading, setIsLoading] = useState(true);
-  const [data, setData] = useState({});
+  const [page, setpage] = useState(1);
+  const [articles, setArticles] = useState([]);
 
   const API_KEY = `bb2794928de444fe8ff141aadb460c70`;
 
   const getNews = async () => {
-    setIsLoading(true);
-
     try {
       const response = await fetch(
-        `http://newsapi.org/v2/top-headlines?country=us&apiKey=${API_KEY}`
+        `http://newsapi.org/v2/top-headlines?country=us&apiKey=${API_KEY}&page=${page}`
       );
-
       const data = await response.json();
-      setData(data);
+      setArticles([...articles, ...data.articles]);
     } catch (e) {
-      console.log("Error");
+      console.log("Error", e);
     }
-    setIsLoading(false);
   };
 
   useEffect(() => {
-    getNews();
+    setIsLoading(true);
+    getNews(1);
+    setIsLoading(false);
   }, []);
+
+  const endPageHandler = () => {
+    console.log(page);
+    setIsLoading(true);
+    setpage(page + 1);
+    getNews();
+    setIsLoading(false);
+  };
 
   const renderItem = ({ item }) => <Article article={item} />;
 
   if (isLoading) {
     return (
-      <View style={styles.loaddingContainer}>
+      <View style={styles.loadingContainer}>
         <ActivityIndicator color="black" size="large" />
       </View>
     );
   }
 
+  const ListFooterComponent = () => {
+    return <ActivityIndicator color="black" size="large" animating={true} />;
+  };
+
   return (
     <View style={styles.container}>
       <FlatList
-        data={data.articles}
+        data={articles}
         renderItem={renderItem}
         keyExtractor={(item, index) => index.toString()}
+        onEndReached={endPageHandler}
+        onEndReachedThreshold={0.8}
+        style={styles.listArticle}
+        ListFooterComponent={ListFooterComponent}
       />
     </View>
   );
@@ -56,8 +77,14 @@ const styles = StyleSheet.create({
     flex: 1,
     marginTop: Constants.statusBarHeight,
   },
-  loaddingContainer: {
+  loadingContainer: {
     flex: 1,
     justifyContent: "center",
+  },
+  loadingArticle: {
+    flex: 0.1,
+  },
+  listArticle: {
+    flex: 1,
   },
 });
